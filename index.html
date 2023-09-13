@@ -1,0 +1,90 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Homepage three.js</title>
+  </head>
+  <body>
+    <div id="pos" style="position: absolute; left: 0; top: 0"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three/build/three.module.js"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { RGBELoader } from "https://unpkg.com/three@0.141.0/examples/jsm/loaders/RGBELoader.js";
+      import { ObjectControls } from "https://cdn.jsdelivr.net/npm/threejs-object-controls@1.2.8/ObjectControls.min.js";
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        100
+      );
+      camera.position.set(0, 0, 5);
+
+      const hdrEquirect = new RGBELoader().load("./startup.hdr", function () {
+        hdrEquirect.mapping = THREE.EquirectangularReflectionMapping;
+        scene.environment = hdrEquirect;
+      });
+
+      const renderer = new THREE.WebGLRenderer({ alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.getElementById("pos").appendChild(renderer.domElement);
+
+      const material = new THREE.MeshPhysicalMaterial({
+        color: "rgb(200, 200, 200)",
+        roughness: 0.3,
+        ior: 1.5,
+        opacity: 1,
+        transmission: 1,
+        thickness: 1,
+        clearcoat: 1,
+        clearcoatRoughness: 0.8,
+        envMap: hdrEquirect,
+        envMapIntensity: 1.5,
+      });
+
+      const loader = new THREE.ObjectLoader();
+      loader.load(
+        // resource URL
+        "./model.json",
+
+        // onLoad callback
+        (obj) => {
+          const geometry = obj.geometry;
+          geometry.scale(0.1, 0.1, 0.1);
+          obj.material = material;
+          scene.add(obj);
+          function animate() {
+            requestAnimationFrame(animate);
+            obj.rotation.x += 0.01;
+            obj.rotation.y += 0.01;
+            obj.rotation.z += 0.01;
+            renderer.render(scene, camera);
+          }
+          const controls = new ObjectControls(camera, renderer.domElement, obj);
+          controls.disableZoom();
+          animate();
+        }
+      );
+
+      const bgTexture = new THREE.TextureLoader().load("./intro.png");
+      const bgGeometry = new THREE.PlaneGeometry(20, 20);
+      const bgMaterial = new THREE.MeshBasicMaterial({ map: bgTexture });
+      const bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
+      bgMesh.position.set(0, 0, -5);
+      scene.add(bgMesh);
+
+      window.addEventListener("resize", onWindowResize);
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+    </script>
+  </body>
+</html>
